@@ -43,11 +43,11 @@ def path_to_data_url(image_path):
 
     with open(image_path, 'rb') as f:
         image_data = f.read()
-    
+
     image_base64 = base64.b64encode(image_data).decode()
 
     if ext.lower() == '.png':
-        mime_type = 'image/png' 
+        mime_type = 'image/png'
     else:
         mime_type = 'image/jpeg'
 
@@ -67,7 +67,7 @@ class ChunkedUpload:
         self.max_byte_length = max_byte_length
         self.progress_callback = progress_callback
         self.sent_chunk_count = 0
-        self.token = token 
+        self.token = token
         self.videopath = filename
         self.videoExt = str(self.videopath.rsplit(".", 1)[-1])
         self.videoName = 'test.' + self.videoExt
@@ -86,7 +86,7 @@ class ChunkedUpload:
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-site'
         }
-        
+
 
 
     def upload(self):
@@ -98,7 +98,7 @@ class ChunkedUpload:
         ) as session:
             file = session.add_file(self.filename,self.qquuid)
             file.chunk_completed.register(self.progress_callback)
-        
+
         response = self.session.get(self.url + '/file/' + self.qquuid, verify=False)
         # print("|> Ax1:", response.text)
         data = {
@@ -125,7 +125,7 @@ class AparatUploader():
         # self.videoName='test.'+self.videoExt
         self.max_byte_length=3000000#1024*1024*3#
         # Create a session object
-      
+
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -143,7 +143,7 @@ class AparatUploader():
             'AuthV1': other_auth_data['AuthV1'],
             '_ga': other_auth_data['_ga'],
             'AFCN': other_auth_data['AFCN'],
-            'm_id': other_auth_data['m_id'],
+#            'm_id': other_auth_data['m_id'],
             '_ym_uid': other_auth_data['_ym_uid'],
             '_ym_d': other_auth_data['_ym_d'],
             'ads_row': '5',
@@ -167,9 +167,9 @@ class AparatUploader():
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
         }
-        
+
     def get_upload_config(self):
-        
+
         headers1 = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -183,13 +183,13 @@ class AparatUploader():
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'same-origin',
         }
-        
+
         response =  requests.get('https://www.aparat.com/api/fa/v1/video/upload/upload_config', cookies=self.cookies, headers=self.headers_edit,verify=False)
         uploadinfo_1=json.loads(response.text  )
-        self.upload_config = uploadinfo_1;    
+        self.upload_config = uploadinfo_1;
         return uploadinfo_1
     def _get_upload_info(self):
-        
+
         headers1 = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -203,7 +203,7 @@ class AparatUploader():
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'same-origin',
         }
-        
+
         uploadinfo_1=self.get_upload_config()
         self.upload_config = uploadinfo_1;
         qquuid=str(uuid.uuid4())
@@ -216,17 +216,17 @@ class AparatUploader():
         self.uploadinfo=json.loads(response.text  )
         # print(">>>> uploadinfo:",self.uploadinfo)
         return self.uploadinfo
-    
+
     def upload_video(self,videopath, progress_callback=None):
         self._get_upload_info()
-        
-        u = ChunkedUpload(url=self.server_url, 
-                          token=self.uploadinfo['data'][0]['attributes']['token'], 
-                          qquuid=self.qquuid, 
-                          filename=videopath, 
-                          max_byte_length=self.max_byte_length, 
+
+        u = ChunkedUpload(url=self.server_url,
+                          token=self.uploadinfo['data'][0]['attributes']['token'],
+                          qquuid=self.qquuid,
+                          filename=videopath,
+                          max_byte_length=self.max_byte_length,
                           progress_callback=progress_callback
-                         ) 
+                         )
         u.upload()
     def upload(self ,
                videopath,
@@ -235,8 +235,13 @@ class AparatUploader():
                progress_callback=None,
                **kwargs
               ):
-        self.upload_video(videopath, progress_callback)
-        
+#        self.upload_video(videopath, progress_callback)
+        try:
+            self.upload_video(videopath, progress_callback)
+        except Exception as e:
+            print(f"خطا در استفاده از upload_video: {e}")
+            return
+
 
         data = {
             "uploadId": self.uploadinfo['data'][0]['attributes']['uploadId'],
@@ -256,7 +261,7 @@ class AparatUploader():
             "subtitle": "",
             "publish_date": ""
         }
-        
+
         for key, value in data.items():
             if key not in kwargs:
                 kwargs[key] = value
@@ -266,9 +271,25 @@ class AparatUploader():
             kwargs['thumbnail-file']="C:\\fakepath\\in99dex.jpg"
         # print(data)
         # print(kwargs)
-        response = requests.post('https://www.aparat.com/api/fa/v1/video/upload/upload/uploadId/'+self.uploadinfo['data'][0]['attributes']['uploadId'], data=json.dumps(kwargs), cookies=self.cookies, headers=self.headers_edit, verify=False)
-        
-        return json.loads(response.text  )
+#        response = requests.post('https://www.aparat.com/api/fa/v1/video/upload/upload/uploadId/'+self.uploadinfo['data'][0]['attributes']['uploadId'], data=json.dumps(kwargs), cookies=self.cookies, headers=self.headers_edit, verify=False)
+
+#        return json.loads(response.text  )
+        try:
+            response = requests.post(
+                'https://www.aparat.com/api/fa/v1/video/upload/upload/uploadId/' + self.uploadinfo['data'][0]['attributes']['uploadId'],
+                data=json.dumps(kwargs),
+                cookies=self.cookies,
+                headers=self.headers_edit,
+                verify=False
+            )
+            response.raise_for_status()  # اینجا خطاها را بررسی می‌کند
+            return json.loads(response.text)
+
+        except requests.exceptions.HTTPError as http_err:
+            print(f"خطای HTTP: {http_err.response.status_code} - {http_err.response.text}")
+        except Exception as err:
+            print(f"خطای غیرمنتظره: {err}")
+        return None  # اگر به هر دلیلی خطا رخ داد و هیچ داده‌ای برگشت داده نشد
     def get_uploaded_video_info(self,videoHash):
         response = requests.get(
             'https://www.aparat.com/api/fa/v1/video/video/show/videohash/'+videoHash+'?pr=1&mf=1',
@@ -276,7 +297,7 @@ class AparatUploader():
             headers=self.headers_edit,
         )
         return json.loads(response.text  )
-    def update_video_data(self,videoHash,**kwargs): 
+    def update_video_data(self,videoHash,**kwargs):
         viddata=self.get_uploaded_video_info(videoHash)
         predefined_values = {
         'title':viddata['data']['title'],
@@ -307,13 +328,8 @@ class AparatUploader():
             image_data_url = path_to_data_url(image_data_url)
         data = {"image":image_data_url}
         response =  requests.post('https://www.aparat.com/api/fa/v1/video/video/mainpic_upload/videohash/'+video_Id,
-                          data=json.dumps(data), 
-                          cookies=self.cookies, 
+                          data=json.dumps(data),
+                          cookies=self.cookies,
                           headers=self.headers_edit,
                           verify=False)
         return json.loads(response.text  )
-
-
-
-
-       
